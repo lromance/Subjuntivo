@@ -56,15 +56,8 @@ export const generateConjugationChallenge = async (): Promise<ConjugationChallen
     throw new Error("No response text");
   } catch (error) {
     console.error("Error generating conjugation:", error);
-    // Fallback
-    return {
-      verb: "Tener",
-      mood: "Subjuntivo",
-      person: "Nosotros",
-      tense: "Presente",
-      correctForm: "tengamos",
-      hint: "Raíz irregular 'teng-'"
-    };
+    // Re-throw the error to be caught by the calling component
+    throw error;
   }
 };
 
@@ -106,14 +99,7 @@ export const generateTriggerChallenge = async (): Promise<TriggerChallenge> => {
     throw new Error("No response text");
   } catch (error) {
     console.error(error);
-    return {
-      sentenceStart: "Es posible que él ___ tarde.",
-      triggerType: "Probabilidad/Duda",
-      options: [
-        { text: "llega", isCorrect: false, explanation: "Indicativo expresa certeza." },
-        { text: "llegue", isCorrect: true, explanation: "Es posible expresa incertidumbre -> Subjuntivo." }
-      ]
-    };
+    throw error;
   }
 };
 
@@ -145,13 +131,8 @@ export const generateSentenceScenario = async (): Promise<SentenceChallenge> => 
     }
     throw new Error("No response");
   } catch (e) {
-    return {
-      context: "Tu compañero de piso hace mucho ruido.",
-      trigger: "Te pido que...",
-      verbOptions: ["bajar", "comer", "saltar"],
-      correctVerbInfinitive: "bajar",
-      targetTranslation: "I ask that you lower the volume."
-    };
+    console.error("Error generating sentence scenario:", e);
+    throw e;
   }
 };
 
@@ -181,7 +162,8 @@ export const evaluateSentence = async (context: string, trigger: string, userSen
     }
     throw new Error("No response");
   } catch (error) {
-    return { isCorrect: false, feedback: "Error de conexión.", correction: "" };
+    console.error("Error evaluating sentence:", error);
+    throw error;
   }
 };
 
@@ -205,9 +187,10 @@ export const generateRoleplayStart = async (): Promise<{scenario: string, teache
       }
     });
      if (response.text) return JSON.parse(cleanText(response.text));
-     throw new Error();
+     throw new Error("No response text from Gemini");
   } catch (e) {
-    return { scenario: "Planificando un viaje", teacherPrompt: "Hola, quiero que organicemos un viaje. ¿A dónde sugieres que vayamos?" };
+    console.error("Error generating roleplay start:", e);
+    throw e;
   }
 }
 
@@ -249,13 +232,10 @@ export const generatePuzzleChallenge = async (): Promise<PuzzleChallenge> => {
     });
 
     if (response.text) return JSON.parse(cleanText(response.text));
-    throw new Error("No data");
+    throw new Error("No data from Gemini");
   } catch (e) {
-    return {
-      originalSentence: "Es probable que llueva mañana",
-      scrambledWords: ["llueva", "que", "Es", "probable", "mañana"],
-      translation: "It is likely to rain tomorrow."
-    };
+    console.error("Error generating puzzle challenge:", e);
+    throw e;
   }
 };
 
@@ -291,15 +271,9 @@ export const generateErrorChallenge = async (): Promise<ErrorChallenge> => {
       }
     });
     if (response.text) return JSON.parse(cleanText(response.text));
-    throw new Error("No data");
+    throw new Error("No data from Gemini");
   } catch (e) {
-     return {
-       context: "Expresando duda",
-       options: [
-         { id: 1, text: "No creo que es verdad.", isCorrect: false },
-         { id: 2, text: "No creo que sea verdad.", isCorrect: true }
-       ],
-       explanation: "Cuando usamos 'No creo que', expresamos duda, por lo que necesitamos el subjuntivo (sea)."
-     };
+    console.error("Error generating error challenge:", e);
+    throw e;
   }
 };

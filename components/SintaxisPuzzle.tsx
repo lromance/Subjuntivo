@@ -3,24 +3,32 @@ import React, { useState, useEffect } from 'react';
 import { generatePuzzleChallenge } from '../services/gemini';
 import { PuzzleChallenge, FeedbackStatus } from '../types';
 import { Button } from './Button';
-import { Loader2, Puzzle, Undo, CheckCircle, AlertTriangle, ArrowRight } from 'lucide-react';
+import { Loader2, Puzzle, Undo, CheckCircle, AlertTriangle, ArrowRight, XCircle } from 'lucide-react';
 
 export const SintaxisPuzzle: React.FC<{ addPoints: (p: number) => void }> = ({ addPoints }) => {
   const [challenge, setChallenge] = useState<PuzzleChallenge | null>(null);
   const [availableWords, setAvailableWords] = useState<{id: number, text: string}[]>([]);
   const [selectedWords, setSelectedWords] = useState<{id: number, text: string}[]>([]);
   const [status, setStatus] = useState<FeedbackStatus>('loading');
+  const [error, setError] = useState<string | null>(null);
 
   const loadChallenge = async () => {
     setStatus('loading');
+    setError(null);
     setChallenge(null);
     setSelectedWords([]);
     setAvailableWords([]);
     
-    const data = await generatePuzzleChallenge();
-    setChallenge(data);
-    setAvailableWords(data.scrambledWords.map((w, i) => ({ id: i, text: w })));
-    setStatus('idle');
+    try {
+      const data = await generatePuzzleChallenge();
+      setChallenge(data);
+      setAvailableWords(data.scrambledWords.map((w, i) => ({ id: i, text: w })));
+      setStatus('idle');
+    } catch (e: any) {
+      console.error(e);
+      setError(`Error al cargar el puzzle: ${e.message}`);
+      setStatus('idle');
+    }
   };
 
   useEffect(() => {
@@ -52,6 +60,19 @@ export const SintaxisPuzzle: React.FC<{ addPoints: (p: number) => void }> = ({ a
       setStatus('incorrect');
     }
   };
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 text-red-600 bg-red-50 rounded-2xl p-8">
+        <XCircle className="mb-4" size={48} />
+        <h3 className="text-xl font-bold mb-2">Error de Conexión</h3>
+        <p className="text-center mb-4">{error}</p>
+        <Button onClick={loadChallenge} variant="outline">
+          Intentar de Nuevo
+        </Button>
+      </div>
+    );
+  }
 
   if (status === 'loading') {
     return (

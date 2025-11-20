@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { generateSentenceScenario, evaluateSentence } from '../services/gemini';
 import { SentenceChallenge } from '../types';
 import { Button } from './Button';
-import { Loader2, Send, ArrowRight, Check, Type } from 'lucide-react';
+import { Loader2, Send, ArrowRight, Check, Type, XCircle } from 'lucide-react';
 
 export const SentenceBuilder: React.FC<{ addPoints: (p: number) => void }> = ({ addPoints }) => {
   const [step, setStep] = useState<'loading' | 'choose_verb' | 'construct' | 'feedback'>('loading');
@@ -11,17 +11,25 @@ export const SentenceBuilder: React.FC<{ addPoints: (p: number) => void }> = ({ 
   const [userSentencePart, setUserSentencePart] = useState("");
   const [feedback, setFeedback] = useState<{isCorrect: boolean, feedback: string, correction: string} | null>(null);
   const [evaluating, setEvaluating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const loadChallenge = async () => {
     setStep('loading');
+    setError(null);
     setChallenge(null);
     setSelectedVerb(null);
     setUserSentencePart("");
     setFeedback(null);
     
-    const data = await generateSentenceScenario();
-    setChallenge(data);
-    setStep('choose_verb');
+    try {
+      const data = await generateSentenceScenario();
+      setChallenge(data);
+      setStep('choose_verb');
+    } catch (e: any) {
+      console.error(e);
+      setError(`Error al cargar el escenario: ${e.message}`);
+      setStep('feedback'); // go to a state where error can be shown
+    }
   };
 
   useEffect(() => {
@@ -42,12 +50,19 @@ export const SentenceBuilder: React.FC<{ addPoints: (p: number) => void }> = ({ 
   const handleSubmit = async () => {
     if (!challenge) return;
     setEvaluating(true);
+    setError(null);
     
-    const result = await evaluateSentence(challenge.context, challenge.trigger, userSentencePart);
-    setFeedback(result);
-    setStep('feedback');
-    if (result.isCorrect) addPoints(25);
-    setEvaluating(false);
+    try {
+      const result = await evaluateSentence(challenge.context, challenge.trigger, userSentencePart);
+      setFeedback(result);
+      if (result.isCorrect) addPoints(25);
+    } catch (e: any) {
+      console.error(e);
+      setError(`Error al evaluar la respuesta: ${e.message}`);
+    } finally {
+      setStep('feedback');
+      setEvaluating(false);
+    }
   };
 
   if (step === 'loading') {
@@ -55,6 +70,19 @@ export const SentenceBuilder: React.FC<{ addPoints: (p: number) => void }> = ({ 
       <div className="flex flex-col items-center justify-center h-64 text-amber-600">
         <Loader2 className="animate-spin mb-4" size={48} />
         <p>Diseñando una situación...</p>
+      </div>
+    );
+  }
+  
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 text-red-600 bg-red-50 rounded-2xl p-8">
+        <XCircle className="mb-4" size={48} />
+        <h3 className="text-xl font-bold mb-2">Error de Conexión</h3>
+        <p className="text-center mb-4">{error}</p>
+        <Button onClick={loadChallenge} variant="outline">
+          Intentar de Nuevo
+        </Button>
       </div>
     );
   }

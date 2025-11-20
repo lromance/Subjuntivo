@@ -9,14 +9,22 @@ export const ConjugationDojo: React.FC<{ addPoints: (p: number) => void }> = ({ 
   const [userAnswer, setUserAnswer] = useState('');
   const [status, setStatus] = useState<FeedbackStatus>('loading');
   const [showHint, setShowHint] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const loadNewChallenge = async () => {
     setStatus('loading');
+    setError(null);
     setUserAnswer('');
     setShowHint(false);
-    const newChallenge = await generateConjugationChallenge();
-    setChallenge(newChallenge);
-    setStatus('idle');
+    try {
+      const newChallenge = await generateConjugationChallenge();
+      setChallenge(newChallenge);
+      setStatus('idle');
+    } catch (e: any) {
+      console.error(e);
+      setError(`Error al cargar el desafío: ${e.message}`);
+      setStatus('idle');
+    }
   };
 
   useEffect(() => {
@@ -36,6 +44,19 @@ export const ConjugationDojo: React.FC<{ addPoints: (p: number) => void }> = ({ 
       setStatus('incorrect');
     }
   };
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 text-red-600 bg-red-50 rounded-2xl p-8">
+        <XCircle className="mb-4" size={48} />
+        <h3 className="text-xl font-bold mb-2">Error de Conexión</h3>
+        <p className="text-center mb-4">{error}</p>
+        <Button onClick={loadNewChallenge} variant="outline">
+          Intentar de Nuevo
+        </Button>
+      </div>
+    );
+  }
 
   if (status === 'loading' && !challenge) {
     return (

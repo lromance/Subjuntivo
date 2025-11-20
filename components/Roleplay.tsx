@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { generateRoleplayStart, chatWithTutor } from '../services/gemini';
 import { Button } from './Button';
-import { Send, User, Bot, Loader2 } from 'lucide-react';
+import { Send, User, Bot, Loader2, XCircle } from 'lucide-react';
 
 interface Message {
   sender: 'user' | 'ai';
@@ -13,6 +13,7 @@ export const Roleplay: React.FC = () => {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [scenario, setScenario] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   // Keep track of history for API
@@ -20,15 +21,21 @@ export const Roleplay: React.FC = () => {
 
   const initScenario = async () => {
     setLoading(true);
-    const start = await generateRoleplayStart();
-    setScenario(start.scenario);
-    const initialMsg = { sender: 'ai' as const, text: start.teacherPrompt };
-    setMessages([initialMsg]);
-    historyRef.current = [
-      { role: 'user', parts: [{ text: `Vamos a hacer un roleplay. Escenario: ${start.scenario}. Tú empieza.` }] },
-      { role: 'model', parts: [{ text: start.teacherPrompt }] }
-    ];
-    setLoading(false);
+    setError(null);
+    try {
+      const start = await generateRoleplayStart();
+      setScenario(start.scenario);
+      const initialMsg = { sender: 'ai' as const, text: start.teacherPrompt };
+      setMessages([initialMsg]);
+      historyRef.current = [
+        { role: 'user', parts: [{ text: `Vamos a hacer un roleplay. Escenario: ${start.scenario}. Tú empieza.` }] },
+        { role: 'model', parts: [{ text: start.teacherPrompt }] }
+      ];
+    } catch (e: any) {
+      setError(`No se pudo iniciar el escenario: ${e.message}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -46,6 +53,7 @@ export const Roleplay: React.FC = () => {
     setMessages(prev => [...prev, userMsg]);
     setInput('');
     setLoading(true);
+    setError(null);
 
     try {
       const responseText = await chatWithTutor(historyRef.current, input);
@@ -54,7 +62,8 @@ export const Roleplay: React.FC = () => {
       historyRef.current.push({ role: 'model', parts: [{ text: responseText || '' }] });
       
       setMessages(prev => [...prev, { sender: 'ai', text: responseText || '...' }]);
-    } catch (e) {
+    } catch (e: any) {
+      setError(`Error de la IA: ${e.message}. Por favor, intenta de nuevo.`);
       console.error(e);
     } finally {
       setLoading(false);
@@ -98,6 +107,13 @@ export const Roleplay: React.FC = () => {
         )}
         <div ref={messagesEndRef} />
       </div>
+      
+      {error && (
+        <div className="p-4 bg-red-50 text-red-700 text-sm flex items-center gap-2">
+          <XCircle size={18} />
+          <span>{error}</span>
+        </div>
+      )}
 
       <div className="p-4 bg-white border-t border-gray-100 flex gap-2">
         <input

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { generateTriggerChallenge } from '../services/gemini';
 import { TriggerChallenge, FeedbackStatus } from '../types';
 import { Button } from './Button';
-import { Loader2, Search, Lightbulb, ArrowRight, BookOpen } from 'lucide-react';
+import { Loader2, Search, Lightbulb, ArrowRight, BookOpen, XCircle } from 'lucide-react';
 
 // Concept Card Data
 const CONCEPTS = [
@@ -34,13 +34,21 @@ export const TriggerDetective: React.FC<{ addPoints: (p: number) => void }> = ({
   const [challenge, setChallenge] = useState<TriggerChallenge | null>(null);
   const [status, setStatus] = useState<FeedbackStatus>('loading');
   const [selectedOptionIndex, setSelectedOptionIndex] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const loadChallenge = async () => {
     setStatus('loading');
+    setError(null);
     setSelectedOptionIndex(null);
-    const data = await generateTriggerChallenge();
-    setChallenge(data);
-    setStatus('idle');
+    try {
+      const data = await generateTriggerChallenge();
+      setChallenge(data);
+      setStatus('idle');
+    } catch (e: any) {
+      console.error(e);
+      setError(`Error al cargar el desafío: ${e.message}`);
+      setStatus('idle');
+    }
   };
 
   useEffect(() => {
@@ -60,7 +68,7 @@ export const TriggerDetective: React.FC<{ addPoints: (p: number) => void }> = ({
       setStatus('incorrect');
     }
   };
-
+  
   // RENDER LEARNING MODE
   if (mode === 'learn') {
     const concept = CONCEPTS[conceptIndex];
@@ -99,6 +107,19 @@ export const TriggerDetective: React.FC<{ addPoints: (p: number) => void }> = ({
               )}
            </div>
         </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 text-red-600 bg-red-50 rounded-2xl p-8">
+        <XCircle className="mb-4" size={48} />
+        <h3 className="text-xl font-bold mb-2">Error de Conexión</h3>
+        <p className="text-center mb-4">{error}</p>
+        <Button onClick={loadChallenge} variant="outline">
+          Intentar de Nuevo
+        </Button>
       </div>
     );
   }
