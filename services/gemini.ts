@@ -29,9 +29,13 @@ const cleanText = (text: string): string => {
 // 1. Conjugation Generator
 export const generateConjugationChallenge = async (): Promise<ConjugationChallenge> => {
   try {
+    // Add a random element to the prompt to avoid caching and encourage variety
+    const randomSeed = Math.random();
+    const prompt = `Genera un nuevo y aleatorio ejercicio de conjugación de subjuntivo para nivel B1 (seed: ${randomSeed}). Prioriza verbos irregulares comunes (ser, ir, tener, saber) o cambios de raíz (querer, pedir).`;
+
     const response = await ai.models.generateContent({
       model: modelId,
-      contents: "Genera un ejercicio de conjugación de subjuntivo para nivel B1. Prioriza verbos irregulares comunes (ser, ir, tener, saber) o cambios de raíz (querer, pedir).",
+      contents: prompt,
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
         responseMimeType: "application/json",
